@@ -83,45 +83,51 @@ def calRMSE(data, columnN, args) :
     df = pd.DataFrame({"dTime" : date_list, columnN : data})
 
     
-    RMSEList = []
+    orderList = []
     trueList = []
     predList = []
-
+    meanRMSE = []
     for j in range(1,21 ) : 
+      order = (j, 0 ,j )
+      RMSEList = []
+      for i in range(0, len(df)//50) : 
+        
+        s = i*50
+        e = (i+1)*50
+        # print(s, " : ", e )
+        nowDf = df[s:e]
+        print(nowDf[columnN][-1:].values)
 
+        model = ARIMA(nowDf[columnN], order = order)
+        model_fit = model.fit()
+        model_fit.save('model/ARIMA_fit_x_{}_{}_{}.pt'.f(order[0],order[1],order[2]))
 
-    for i in range(0, len(df)//50) : 
-      s = i*50
-      e = (i+1)*50
-      # print(s, " : ", e )
-      nowDf = df[s:e]
-      print(nowDf[columnN][-1:].values)
+        # model = ARIMA(nowDf[columnN], order=args.order)
+        # model_fit = model.fit()
+        # model_fit.save(args.model_save)
 
+        # print("여기 : ", model_fit.summary())
+        
+        # preds = model_fit.predict(1, 50, typ='levels')1F
+        # preds = model_fit.forecast(24*7, typ='levels')
+        
+        preds = model_fit.forecast(50, typ='levels')
+        print("preds[-1:].values : ", preds[-1:].values)
+        # sys.exit()
 
-      model = ARIMA(nowDf[columnN], order=args.order)
-      model_fit = model.fit()
-      model_fit.save('model/ARIMA_fit_x_{}_{}_{}.pt'.f(p,d,q))
-
-      # model = ARIMA(nowDf[columnN], order=args.order)
-      # model_fit = model.fit()
-      # model_fit.save(args.model_save)
-
-      # print("여기 : ", model_fit.summary())
-      
-      # preds = model_fit.predict(1, 50, typ='levels')1F
-      # preds = model_fit.forecast(24*7, typ='levels')
-      
-      preds = model_fit.forecast(50, typ='levels')
-      print("preds[-1:].values : ", preds[-1:].values)
-      # sys.exit()
-
-      RMSE = mean_squared_error(nowDf[columnN][-1:].values, preds[-1:].values)**0.5
-      # print("nowDf[columnN][-1:].values: ", nowDf[columnN][-1:].values)
-      # print("preds[-1:].values : ", preds[-1:].values)
-      print(RMSE)
-      RMSEList.append(RMSE)
+        RMSE = mean_squared_error(nowDf[columnN][-1:].values, preds[-1:].values)**0.5
+        # print("nowDf[columnN][-1:].values: ", nowDf[columnN][-1:].values)
+        # print("preds[-1:].values : ", preds[-1:].values)
+        print(RMSE)
+        RMSEList.append(RMSE)
+      orderList.append(j)
+      meanRMSE.append(sum(RMSEList)/len(RMSEList))
     
-    return sum(RMSEList)/len(RMSEList)
+    return orderList, meanRMSE
+
+    
+    
+    return 
 
 # 스텝 수 조절
 # RMSE - test set 
@@ -144,10 +150,16 @@ def main():
 
     # sys.exit()
     
-    XRMSE = calRMSE(data, 'x', args)
-    YRMSE = calRMSE(data, 'y', args)
+    orderList, XRMSE = calRMSE(data, 'x', args)
+    _, YRMSE = calRMSE(data, 'y', args)
+
     print("XRMSE : ", XRMSE)
     print("YRMSE : ", YRMSE)
+
+
+    df2.pd.DataFrame({"order":orderList, "xRMSE" : XRMSE, "yRMSE" : YRMSE})
+    print(df2)
+    df2.to_csv("./output/RMSExy.csv")
 
 
 
